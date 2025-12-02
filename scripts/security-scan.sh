@@ -12,7 +12,7 @@ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
 echo ""
 echo "2. Scanning Kubernetes manifests..."
 docker run --rm -v "$(pwd)":/project \
-  aquasec/trivy config /project/k8s/
+  aquasec/trivy config ~/Desktop/devops-pipeline-project/k8s/
 
 echo ""
 echo "3. Scanning for secrets in code..."
