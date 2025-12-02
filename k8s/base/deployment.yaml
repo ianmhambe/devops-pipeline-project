@@ -5,7 +5,7 @@ metadata:
   labels:
     app: devops-app
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: devops-app
@@ -14,17 +14,10 @@ spec:
       labels:
         app: devops-app
     spec:
-      topologySpreadConstraints:
-      - maxSkew: 1
-        topologyKey: kubernetes.io/hostname
-        whenUnsatisfiable: DoNotSchedule
-        labelSelector:
-          matchLabels:
-            app: devops-app
       containers:
       - name: devops-app
         image: devops-demo-app:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never
         ports:
         - containerPort: 3000
           name: http
@@ -38,20 +31,24 @@ spec:
               key: environment
         resources:
           requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
             memory: "128Mi"
             cpu: "100m"
-          limits:
-            memory: "256Mi"
-            cpu: "200m"
         livenessProbe:
           httpGet:
             path: /health
             port: 3000
-          initialDelaySeconds: 10
+          initialDelaySeconds: 15
           periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health
             port: 3000
           initialDelaySeconds: 5
           periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
