@@ -1,0 +1,38 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+    
+    - name: Setup Kind
+      uses: helm/kind-action@v1.8.0
+      with:
+        cluster_name: devops-cluster
+    
+    - name: Build and load image to Kind
+      working-directory: ./app
+      run: |
+        docker build -t devops-demo-app:latest .
+        kind load docker-image devops-demo-app:latest --name devops-cluster
+    
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f k8s/base/
+        kubectl rollout status deployment/devops-app -n default
+    
+    - name: Verify deployment
+      run: |
+        kubectl get pods
+        kubectl get services

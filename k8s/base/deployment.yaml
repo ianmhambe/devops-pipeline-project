@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-app
+  labels:
+    app: devops-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: devops-app
+  template:
+    metadata:
+      labels:
+        app: devops-app
+    spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: devops-app
+      containers:
+      - name: devops-app
+        image: devops-demo-app:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: PORT
+          value: "3000"
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: environment
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5

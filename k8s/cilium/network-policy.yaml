@@ -1,0 +1,28 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: devops-app-policy
+spec:
+  endpointSelector:
+    matchLabels:
+      app: devops-app
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        role: frontend
+    toPorts:
+    - ports:
+      - port: "3000"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        role: database
+    toPorts:
+    - ports:
+      - port: "5432"
+        protocol: TCP
+  - toFQDNs:
+    - matchPattern: "*.google.com"
+  - toEntities:
+    - kube-dns
