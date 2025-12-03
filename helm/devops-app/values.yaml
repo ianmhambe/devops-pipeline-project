@@ -1,0 +1,47 @@
+replicaCount: 2
+
+image:
+  repository: devops-demo-app
+  pullPolicy: Never
+  tag: "latest"
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 3000
+  nodePort: 30080
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+
+env:
+  - name: PORT
+    value: "3000"
+  - name: NODE_ENV
+    value: "production"
+
+configMap:
+  environment: "production"
+  log_level: "info"
+
+secrets:
+  apiKey: "demo-api-key-12345"
+  dbPassword: "demo-password"

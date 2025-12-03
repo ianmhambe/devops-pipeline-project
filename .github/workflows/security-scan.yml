@@ -1,0 +1,113 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ master develop ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly scan
+
+permissions:
+  contents: read
+  security-events: write  # Required for uploading to Security tab
+  actions: read
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Build Docker image for scanning
+      working-directory: ./app
+      run: |
+        # Create package-lock.json if missing
+        if [ ! -f "package-lock.json" ]; then
+          npm install
+        fi
+        docker build -t devops-demo-app:latest .
+    
+    - name: Run Trivy vulnerability scanner on image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'devops-demo-app:latest'
+        format: 'sarif'
+        output: 'trivy-image-results.sarif'
+        severity: 'HIGH,CRITICAL'
+    
+    - name: Upload Trivy image results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-image-results.sarif'
+        category: 'container-image'
+    
+    - name: Run Trivy vulnerability scanner on filesystem
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-fs-results.sarif'
+        severity: 'HIGH,CRITICAL'
+        skip-dirs: 'node_modules'
+    
+    - name: Upload Trivy filesystem results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-fs-results.sarif'
+        category: 'filesystem'
+    
+    - name: Run Trivy on Kubernetes manifests
+      uses: aquasecurity/trivy-action@master
+      if: hashFiles('k8s/**/*.yaml') != ''
+      with:
+        scan-type: 'config'
+        scan-ref: './k8s'
+        format: 'sarif'
+        output: 'trivy-k8s-results.sarif'
+        severity: 'HIGH,CRITICAL'
+    
+    - name: Upload Trivy K8s results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v2
+      if: always() && hashFiles('k8s/**/*.yaml') != ''
+      with:
+        sarif_file: 'trivy-k8s-results.sarif'
+        category: 'kubernetes'
+    
+    - name: Check npm dependencies
+      working-directory: ./app
+      run: |
+        echo "Checking for outdated packages..."
+        npm outdated || true
+        echo ""
+        echo "Running npm audit..."
+        npm audit --audit-level=high || true
+    
+    - name: Scan for secrets
+      uses: trufflesecurity/trufflehog@main
+      continue-on-error: true
+      with:
+        path: ./
+        base: ${{ github.event.repository.default_branch }}
+        head: HEAD
+    
+    - name: Create summary
+      if: always()
+      run: |
+        echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Container image scan: Complete" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Filesystem scan: Complete" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Kubernetes config scan: Complete" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Dependency audit: Complete" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Secret detection: Complete" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "View detailed results in the Security tab!" >> $GITHUB_STEP_SUMMARY

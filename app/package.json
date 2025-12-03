@@ -1,13 +1,15 @@
 {
   "name": "devops-demo-app",
-  "version": "1.0.0",
-  "description": "DevOps Pipeline Demo Application",
+  "version": "2.0.0",
+  "description": "DevOps Pipeline Demo Application with Monitoring",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "echo \"Running tests...\" && exit 0"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "prom-client": "^15.1.3",
+    "winston": "^3.18.3"
   }
 }

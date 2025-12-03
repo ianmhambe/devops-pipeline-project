@@ -25,4 +25,5 @@ spec:
   - toFQDNs:
     - matchPattern: "*.google.com"
   - toEntities:
-    - kube-dns
+    - kube-apiserver
+    - cluster
